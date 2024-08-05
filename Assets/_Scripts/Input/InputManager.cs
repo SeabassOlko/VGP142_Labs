@@ -18,6 +18,7 @@ public class InputManager : Singleton<InputManager>
         inputAction.Enable();
         inputAction.controls.Move.performed += controller.MoveStarted;
         inputAction.controls.Move.canceled += controller.MoveCanceled;
+        inputAction.controls.Drop.performed += controller.DropWeapon;
     }
 
     private void OnDisable()
@@ -25,6 +26,7 @@ public class InputManager : Singleton<InputManager>
         inputAction.Disable();
         inputAction.controls.Move.performed -= controller.MoveStarted;
         inputAction.controls.Move.canceled -= controller.MoveCanceled;
+        inputAction.controls.Drop.performed -= controller.DropWeapon;
     }
 
     // Start is called before the first frame update

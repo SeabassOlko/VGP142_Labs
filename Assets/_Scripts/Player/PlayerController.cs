@@ -7,6 +7,14 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    GameObject weapon;
+    public Transform weaponAttachPoint;
+
+    [SerializeField] Transform spawn;
+    [SerializeField] BoxCollider killBox;
+
+    Animator anim;
+
     //Rigidbody rb;
     CharacterController cc;
 
@@ -18,36 +26,104 @@ public class PlayerController : MonoBehaviour
 
     public bool health = false;
 
+    bool kicking = false;
+    bool swinging = false;
+    bool dead = false;
+
     // Start is called before the first frame update
     void Start()
     {
+        anim = GetComponent<Animator>();
         cc = GetComponent<CharacterController>();
-        //rb = GetComponent<Rigidbody>();
         gravity = Physics.gravity.y;
         InputManager.Instance.controller = this;
+    }
+
+    private void OnApplicationFocus(bool focus)
+    {
+        if (!focus) Cursor.lockState = CursorLockMode.None;
+        else Cursor.lockState = CursorLockMode.Locked;
     }
 
     // Update is called once per frame
     void Update()
     {
-        //float hInput = Input.GetAxis("Horizontal");
-        //float vInput = Input.GetAxis("Vertical");
+        if (!dead)
+        {
+            if (Input.GetKeyDown(KeyCode.Mouse1) && !kicking)
+            {
+                StartCoroutine(kick());
+            }
 
-        float hMouse = Input.GetAxis("Mouse X");
+            if (Input.GetKeyDown(KeyCode.Mouse0) && !swinging)
+            {
+                StartCoroutine(swing());
+            }
 
-        transform.Rotate(Vector3.up * hMouse * 2.5f);
+            if (Input.GetKeyDown(KeyCode.L))
+            {
+                StartCoroutine(death());
+            }
+            //float hInput = Input.GetAxis("Horizontal");
+            //float vInput = Input.GetAxis("Vertical");
 
-        Vector3 hVel = Camera.main.transform.right * direction.x;
-        Vector3 vVel = Camera.main.transform.forward * direction.y;
+            float hMouse = Input.GetAxis("Mouse X");
 
-        Vector3 moveDirection = new Vector3(hVel.x + vVel.x, 0, hVel.z + vVel.z);
-        moveDirection *= speed;
-        moveDirection.y = gravity;
-        moveDirection *= Time.deltaTime;
+            transform.Rotate(Vector3.up * hMouse * 2.5f);
 
-        cc.Move(moveDirection);
+            //transform.Rotate(0, Camera.main.transform.rotation.y, 0);
 
-        //rb.velocity = new Vector3(hVel.x + vVel.x, rb.velocity.y, hVel.z + vVel.z);
+            //transform.rotation = Camera.main.transform.rotation;
+
+            Vector3 hVel = Camera.main.transform.right * direction.x;
+            Vector3 vVel = Camera.main.transform.forward * direction.y;
+
+            hVel.Normalize();
+            vVel.Normalize();
+
+            Vector3 moveDirection = new Vector3(hVel.x + vVel.x, 0, hVel.z + vVel.z);
+
+            anim.SetFloat("Speed", direction.magnitude);
+
+            if (moveDirection.magnitude > 0)
+            {
+                //transform.rotation = Quaternion.Slerp(transform.rotation, moveDirection, 0.1f);
+            }
+
+            moveDirection *= speed;
+            moveDirection.y = gravity;
+            moveDirection *= Time.deltaTime;
+
+            cc.Move(moveDirection);
+
+            //rb.velocity = new Vector3(hVel.x + vVel.x, rb.velocity.y, hVel.z + vVel.z);
+        }
+    }
+
+    IEnumerator kick()
+    {
+        kicking = true;
+        anim.SetTrigger("Kick");
+        yield return new WaitForSeconds(1.5f);
+        kicking = false;
+    }
+
+    IEnumerator swing()
+    {
+        swinging = true;
+        anim.SetTrigger("Swing");
+        yield return new WaitForSeconds(2.1f);
+        swinging = false;
+    }
+
+    IEnumerator death()
+    {
+        dead = true;
+        anim.SetTrigger("Death");
+        yield return new WaitForSeconds(4.23f);
+        dead = false;
+        cc.transform.position = spawn.position;
+        Physics.SyncTransforms();
     }
 
     public void MoveStarted(InputAction.CallbackContext ctx)
@@ -58,5 +134,46 @@ public class PlayerController : MonoBehaviour
     public void MoveCanceled(InputAction.CallbackContext ctx)
     {
         direction = Vector2.zero;
+    }
+
+    public void DropWeapon(InputAction.CallbackContext ctx)
+    {
+        if (weapon)
+        {
+            weaponAttachPoint.DetachChildren();
+            Physics.IgnoreCollision(weapon.GetComponent<Collider>(), GetComponent<Collider>(), false);
+            Rigidbody weaponRb = weapon.GetComponent<Rigidbody>();
+            weaponRb.isKinematic = false;
+            weaponRb.AddForce(transform.forward * 10, ForceMode.Impulse);
+            weapon = null;
+        }
+    }
+
+    public void respawn()
+    {
+        StartCoroutine(death());
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (hit.collider.CompareTag("Weapon") && weapon == null)
+        {
+            weapon = hit.gameObject;
+            weapon.GetComponent<Rigidbody>().isKinematic = true;
+            weapon.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
+            weapon.transform.SetParent(weaponAttachPoint);
+            Physics.IgnoreCollision(GetComponent<Collider>(), hit.collider);
+        }
+    }
+
+    public void EnemyHit(Collision collision)
+    {
+        if (collision.collider.CompareTag("Enemy"))
+        {
+            if (kicking)
+                collision.gameObject.GetComponent<EnemyGhost>().death("Kick_Death");
+            else if (swinging)
+                collision.gameObject.GetComponent<EnemyGhost>().death("Melee_Death");
+        }
     }
 }

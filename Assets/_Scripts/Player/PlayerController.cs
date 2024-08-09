@@ -24,7 +24,11 @@ public class PlayerController : MonoBehaviour
     private float gravity;
     private Vector2 direction;
 
-    public bool health = false;
+    const int MAX_HEALTH = 10;
+    public int health;
+    HealthBar healthBar;
+
+    [SerializeField] int kickDamage, meleeDamage;
 
     bool kicking = false;
     bool swinging = false;
@@ -33,10 +37,15 @@ public class PlayerController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        health = MAX_HEALTH;
+        healthBar = GetComponent<HealthBar>();
         anim = GetComponent<Animator>();
         cc = GetComponent<CharacterController>();
         gravity = Physics.gravity.y;
         InputManager.Instance.controller = this;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        healthBar.updateHealth(health, MAX_HEALTH);
     }
 
     private void OnApplicationFocus(bool focus)
@@ -124,6 +133,8 @@ public class PlayerController : MonoBehaviour
         dead = false;
         cc.transform.position = spawn.position;
         Physics.SyncTransforms();
+        health = MAX_HEALTH;
+        healthBar.updateHealth(health, MAX_HEALTH);
     }
 
     public void MoveStarted(InputAction.CallbackContext ctx)
@@ -171,9 +182,41 @@ public class PlayerController : MonoBehaviour
         if (collision.collider.CompareTag("Enemy"))
         {
             if (kicking)
-                collision.gameObject.GetComponent<EnemyGhost>().death("Kick_Death");
+                collision.gameObject.GetComponent<EnemyGhost>().hit(kickDamage, "Kick_Death");
             else if (swinging)
-                collision.gameObject.GetComponent<EnemyGhost>().death("Melee_Death");
+                collision.gameObject.GetComponent<EnemyGhost>().hit(meleeDamage, "Melee_Death");
+        }
+    }
+
+    public void hurt(int damage)
+    {
+        if (dead) return;
+
+        if (health - damage <= 0)
+        {
+            health = 0;
+            healthBar.updateHealth(health, MAX_HEALTH);
+            respawn();
+        }
+        else
+        {
+            health -= damage;
+            healthBar.updateHealth(health, MAX_HEALTH);
+        }
+        Debug.Log("Health is now: " + health);
+    }
+
+    public void heal(int hp)
+    {
+        if (health + hp > MAX_HEALTH) 
+        {
+            health = MAX_HEALTH;
+            healthBar.updateHealth(health, MAX_HEALTH);
+        }
+        else
+        {
+            health += hp;
+            healthBar.updateHealth(health, MAX_HEALTH);
         }
     }
 }

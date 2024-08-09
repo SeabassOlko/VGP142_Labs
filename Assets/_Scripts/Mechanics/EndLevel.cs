@@ -11,7 +11,8 @@ public class EndLevel : MonoBehaviour
     {
         if (other.gameObject.tag == "Player")
         {
-            SceneManager.LoadScene(1);
+            Cursor.lockState = CursorLockMode.None;
+            SceneManager.LoadScene("EndLevel");
         }
     }
 }

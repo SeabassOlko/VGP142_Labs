@@ -23,10 +23,9 @@ public class PickUp : MonoBehaviour
                 case PickupType.RedPickup:
                     try
                     {
-                        if (other.gameObject.GetComponent<PlayerController>().health == false) throw new Exception();
+                        if (other.gameObject.GetComponent<PlayerController>().health < 0) throw new Exception();
                         else
-                            other.gameObject.GetComponent<PlayerController>().health = true;
-                        //subtract from health
+                            other.gameObject.GetComponent<PlayerController>().heal(4);
                     }
                     catch (Exception e)
                     {

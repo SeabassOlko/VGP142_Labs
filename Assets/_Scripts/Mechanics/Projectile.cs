@@ -7,6 +7,7 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     float speed = 8f;
+    [SerializeField] int damage;
     // Start is called before the first frame update
     void Start()
     {
@@ -23,7 +24,7 @@ public class Projectile : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            other.GetComponent<PlayerController>().respawn();
+            other.GetComponent<PlayerController>().hurt(damage);
             Destroy(gameObject);
         }
     }

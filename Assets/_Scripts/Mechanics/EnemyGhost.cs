@@ -13,6 +13,11 @@ public class EnemyGhost : MonoBehaviour
 
     [SerializeField]Animator anim;
 
+    [SerializeField] float MAX_HEALTH;
+    float health;
+
+    HealthBar healthBar;
+
     bool isDead = false;
 
     bool canShoot = true;
@@ -20,6 +25,9 @@ public class EnemyGhost : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        health = MAX_HEALTH;
+        healthBar = GetComponent<HealthBar>();
+        healthBar.updateHealth(health,MAX_HEALTH);
     }
 
     // Update is called once per frame
@@ -54,7 +62,6 @@ public class EnemyGhost : MonoBehaviour
                 StartCoroutine(shoot());
             }
         }
-        
     }
 
     public void death(string deathType)
@@ -72,5 +79,20 @@ public class EnemyGhost : MonoBehaviour
         Instantiate(projectile, transform.position + new Vector3(0, 0.75f, 0.5f), transform.rotation);
         yield return new WaitForSeconds(4f);
         canShoot = true;
+    }
+
+    public void hit(int damage, string damageType)
+    {
+        if (health - damage <= 0)
+        {
+            health = 0;
+            healthBar.updateHealth(health, MAX_HEALTH);
+            death(damageType);
+        }
+        else
+        {
+            health -= damage;
+            healthBar.updateHealth(health, MAX_HEALTH);
+        }
     }
 }

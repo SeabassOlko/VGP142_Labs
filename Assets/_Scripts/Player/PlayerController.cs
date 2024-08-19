@@ -11,7 +11,9 @@ public class PlayerController : MonoBehaviour
     public Transform weaponAttachPoint;
 
     [SerializeField] Transform spawn;
-    [SerializeField] BoxCollider killBox;
+    KillBox killBox;
+
+    public bool paused = false;
 
     Animator anim;
 
@@ -30,6 +32,7 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] int kickDamage, meleeDamage;
 
+    bool canHit = true;
     bool kicking = false;
     bool swinging = false;
     bool dead = false;
@@ -41,6 +44,7 @@ public class PlayerController : MonoBehaviour
         healthBar = GetComponent<HealthBar>();
         anim = GetComponent<Animator>();
         cc = GetComponent<CharacterController>();
+        killBox = GetComponentInChildren<KillBox>();
         gravity = Physics.gravity.y;
         InputManager.Instance.controller = this;
         Cursor.lockState = CursorLockMode.Locked;
@@ -57,6 +61,8 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (paused) return;
+
         if (!dead)
         {
             if (Input.GetKeyDown(KeyCode.Mouse1) && !kicking)
@@ -113,7 +119,7 @@ public class PlayerController : MonoBehaviour
     {
         kicking = true;
         anim.SetTrigger("Kick");
-        yield return new WaitForSeconds(1.5f);
+        yield return new WaitForSeconds(1.0f);
         kicking = false;
     }
 
@@ -121,7 +127,7 @@ public class PlayerController : MonoBehaviour
     {
         swinging = true;
         anim.SetTrigger("Swing");
-        yield return new WaitForSeconds(2.1f);
+        yield return new WaitForSeconds(1.0f);
         swinging = false;
     }
 
@@ -135,6 +141,17 @@ public class PlayerController : MonoBehaviour
         Physics.SyncTransforms();
         health = MAX_HEALTH;
         healthBar.updateHealth(health, MAX_HEALTH);
+    }
+    public void cooldown()
+    {
+        StartCoroutine(hitCooldown());
+    }
+
+    IEnumerator hitCooldown()
+    {
+        canHit = false;
+        yield return new WaitForSeconds(1.0f);
+        canHit = true;
     }
 
     public void MoveStarted(InputAction.CallbackContext ctx)
@@ -177,14 +194,20 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    public void EnemyHit(Collision collision)
+    public void EnemyHit(Collider collision)
     {
-        if (collision.collider.CompareTag("Enemy"))
+        if (collision.CompareTag("Enemy") && canHit)
         {
             if (kicking)
-                collision.gameObject.GetComponent<EnemyGhost>().hit(kickDamage, "Kick_Death");
+            {
+                cooldown();
+                collision.gameObject.GetComponent<Enemy>().hit(kickDamage, "Kick_Death");
+            }
             else if (swinging)
-                collision.gameObject.GetComponent<EnemyGhost>().hit(meleeDamage, "Melee_Death");
+            {
+                cooldown();
+                collision.gameObject.GetComponent<Enemy>().hit(meleeDamage, "Melee_Death");
+            }
         }
     }
 

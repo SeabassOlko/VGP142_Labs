@@ -11,8 +11,10 @@ public class KillBox : MonoBehaviour
         playerController = transform.parent.GetComponent<PlayerController>();
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerStay(Collider other)
     {
-        playerController.EnemyHit(collision);
+        Debug.Log("EnemyHit being called");
+        playerController.EnemyHit(other);
     }
 }
+

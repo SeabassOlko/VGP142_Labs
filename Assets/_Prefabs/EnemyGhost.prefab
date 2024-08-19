@@ -399,13 +399,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1c3f304e693558479950da9db65865d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  MAX_HEALTH: 2
+  drop: {fileID: 3906211873614394618, guid: 85637b1a7149ba14f8ac3572b9eb8662, type: 3}
   player: {fileID: 0}
   projectile: {fileID: 3665373019534466579, guid: 9daccf76e3c9fde46a53b6f5a1ac6660, type: 3}
   ren: {fileID: 3917076579560379066}
-  anim: {fileID: 1065773482861175899}
-  health: 2
-  MAX_HEALTH: 2
-  healthBar: {fileID: 0}
 --- !u!114 &3363939917372081953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -419,6 +417,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slider: {fileID: 9054290487377013212}
+  followPlayer: 1
+  player: {fileID: 0}
 --- !u!1 &8333388254639699706
 GameObject:
   m_ObjectHideFlags: 0
@@ -555,11 +555,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c84fbe2079f1253469d3c5ad4bbf3399, type: 3}
---- !u!95 &1065773482861175899 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: c84fbe2079f1253469d3c5ad4bbf3399, type: 3}
-  m_PrefabInstance: {fileID: 6890779009168710090}
-  m_PrefabAsset: {fileID: 0}
 --- !u!137 &3917076579560379066 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: 7637179843767618416, guid: c84fbe2079f1253469d3c5ad4bbf3399, type: 3}

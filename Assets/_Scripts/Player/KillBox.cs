@@ -13,7 +13,6 @@ public class KillBox : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        Debug.Log("EnemyHit being called");
         playerController.EnemyHit(other);
     }
 }

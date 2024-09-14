@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -5,30 +6,37 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(PlayerLoadSave))]
+
 public class PlayerController : MonoBehaviour
 {
-    GameObject weapon;
-    public Transform weaponAttachPoint;
+    [SerializeField]Transform weaponAttachPoint;
+    [SerializeField]Transform backHolder;
+    [SerializeField]Transform hipHolder;
 
-    [SerializeField] Transform spawn;
+    [SerializeField] GameObject sword;
+    [SerializeField] GameObject axe;
+    bool holdingSword = false;
+    bool holdingAxe = false;
+    bool sheathing;
+
+    [SerializeField] ParticleSystem FX_Healing;
+
+    CharacterController playerCharacterController;
+    PlayerLoadSave playerLoadSave;
+
+    [SerializeField] Transform lastCheckpoint;
     KillBox killBox;
 
     public bool paused = false;
 
     Animator anim;
-
-    //Rigidbody rb;
-    CharacterController cc;
-
-    [Range(0f, 20f)]
-    public float speed = 5f;
-
-    private float gravity;
-    private Vector2 direction;
-
+    
     const int MAX_HEALTH = 10;
-    public int health;
+    int health;
     HealthBar healthBar;
+    const int MAX_Lives = 3;
+    int lives;
 
     [SerializeField] int kickDamage, meleeDamage;
 
@@ -41,15 +49,16 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         health = MAX_HEALTH;
+        lives = MAX_Lives;
         healthBar = GetComponent<HealthBar>();
         anim = GetComponent<Animator>();
-        cc = GetComponent<CharacterController>();
+        playerCharacterController = GetComponent<CharacterController>();
         killBox = GetComponentInChildren<KillBox>();
-        gravity = Physics.gravity.y;
-        InputManager.Instance.controller = this;
+        playerLoadSave = GetComponent<PlayerLoadSave>();
+        InputManager.Instance.playerController = this;
         Cursor.lockState = CursorLockMode.Locked;
 
-        healthBar.updateHealth(health, MAX_HEALTH);
+        healthBar.UpdateHealth(health, MAX_HEALTH);
     }
 
     private void OnApplicationFocus(bool focus)
@@ -65,57 +74,29 @@ public class PlayerController : MonoBehaviour
 
         if (!dead)
         {
-            if (Input.GetKeyDown(KeyCode.Mouse1) && !kicking)
+            if (Input.GetKeyDown(KeyCode.Mouse1) && !kicking && !swinging && !sheathing)
             {
-                StartCoroutine(kick());
+                StartCoroutine(Kick());
             }
 
-            if (Input.GetKeyDown(KeyCode.Mouse0) && !swinging)
+            if (Input.GetKeyDown(KeyCode.Mouse0) && !swinging && !kicking && !sheathing)
             {
-                StartCoroutine(swing());
+                StartCoroutine(Swing());
             }
 
             if (Input.GetKeyDown(KeyCode.L))
             {
-                StartCoroutine(death());
+                StartCoroutine(Death());
             }
-            //float hInput = Input.GetAxis("Horizontal");
-            //float vInput = Input.GetAxis("Vertical");
 
-            float hMouse = Input.GetAxis("Mouse X");
-
-            transform.Rotate(Vector3.up * hMouse * 2.5f);
-
-            //transform.Rotate(0, Camera.main.transform.rotation.y, 0);
-
-            //transform.rotation = Camera.main.transform.rotation;
-
-            Vector3 hVel = Camera.main.transform.right * direction.x;
-            Vector3 vVel = Camera.main.transform.forward * direction.y;
-
-            hVel.Normalize();
-            vVel.Normalize();
-
-            Vector3 moveDirection = new Vector3(hVel.x + vVel.x, 0, hVel.z + vVel.z);
-
-            anim.SetFloat("Speed", direction.magnitude);
-
-            if (moveDirection.magnitude > 0)
+            if (Input.GetKeyDown(KeyCode.R) && !swinging && !kicking && !sheathing)
             {
-                //transform.rotation = Quaternion.Slerp(transform.rotation, moveDirection, 0.1f);
+                StartCoroutine(ChangeWeapons());
             }
-
-            moveDirection *= speed;
-            moveDirection.y = gravity;
-            moveDirection *= Time.deltaTime;
-
-            cc.Move(moveDirection);
-
-            //rb.velocity = new Vector3(hVel.x + vVel.x, rb.velocity.y, hVel.z + vVel.z);
         }
     }
 
-    IEnumerator kick()
+    IEnumerator Kick()
     {
         kicking = true;
         anim.SetTrigger("Kick");
@@ -123,7 +104,7 @@ public class PlayerController : MonoBehaviour
         kicking = false;
     }
 
-    IEnumerator swing()
+    IEnumerator Swing()
     {
         swinging = true;
         anim.SetTrigger("Swing");
@@ -131,66 +112,148 @@ public class PlayerController : MonoBehaviour
         swinging = false;
     }
 
-    IEnumerator death()
+    IEnumerator Death()
     {
         dead = true;
         anim.SetTrigger("Death");
         yield return new WaitForSeconds(4.23f);
-        dead = false;
-        cc.transform.position = spawn.position;
+        dead = false;   
+        playerCharacterController.transform.position = lastCheckpoint.position;
         Physics.SyncTransforms();
         health = MAX_HEALTH;
-        healthBar.updateHealth(health, MAX_HEALTH);
-    }
-    public void cooldown()
-    {
-        StartCoroutine(hitCooldown());
+        healthBar.UpdateHealth(health, MAX_HEALTH);
     }
 
-    IEnumerator hitCooldown()
+    IEnumerator ChangeWeapons()
+    {
+        if (holdingSword || holdingAxe)
+        {
+            sheathing = true;
+            anim.SetTrigger("SheathBack");
+            yield return new WaitForSeconds(0.22f);
+            if (holdingSword)
+            {
+                sword.transform.SetPositionAndRotation(backHolder.position, backHolder.rotation);
+                sword.transform.SetParent(backHolder);
+                holdingSword = false;
+                if (axe)
+                {
+                    holdingAxe = true;
+                    axe.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
+                    axe.transform.SetParent(weaponAttachPoint);
+                }
+            }
+            else if (holdingAxe)
+            {
+                axe.transform.SetPositionAndRotation(backHolder.position, backHolder.rotation);
+                axe.transform.SetParent(backHolder);
+                holdingAxe = false;
+                if (sword)
+                {
+                    holdingSword = true;
+                    sword.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
+                    sword.transform.SetParent(weaponAttachPoint);
+                }
+            }
+            yield return new WaitForSeconds(1.04f);
+            sheathing = false;
+        }
+    }
+    public void Cooldown()
+    {
+        StartCoroutine(HitCooldown());
+    }
+
+    IEnumerator HitCooldown()
     {
         canHit = false;
         yield return new WaitForSeconds(1.0f);
         canHit = true;
     }
 
-    public void MoveStarted(InputAction.CallbackContext ctx)
-    {
-        direction = ctx.ReadValue<Vector2>();
-    }
-
-    public void MoveCanceled(InputAction.CallbackContext ctx)
-    {
-        direction = Vector2.zero;
-    }
-
     public void DropWeapon(InputAction.CallbackContext ctx)
     {
-        if (weapon)
+        if (holdingSword)
         {
             weaponAttachPoint.DetachChildren();
-            Physics.IgnoreCollision(weapon.GetComponent<Collider>(), GetComponent<Collider>(), false);
-            Rigidbody weaponRb = weapon.GetComponent<Rigidbody>();
+            Physics.IgnoreCollision(sword.GetComponentInChildren<Collider>(), GetComponentInChildren<Collider>(), false);
+            Rigidbody weaponRb = sword.GetComponent<Rigidbody>();
             weaponRb.isKinematic = false;
             weaponRb.AddForce(transform.forward * 10, ForceMode.Impulse);
-            weapon = null;
+            sword = null;
+            holdingSword = false;
+        }
+        else if (holdingAxe)
+        {
+            weaponAttachPoint.DetachChildren();
+            Physics.IgnoreCollision(axe.GetComponentInChildren<Collider>(), GetComponentInChildren<Collider>(), false);
+            Rigidbody weaponRb = axe.GetComponent<Rigidbody>();
+            weaponRb.isKinematic = false;
+            weaponRb.AddForce(transform.forward * 10, ForceMode.Impulse);
+            axe = null;
+            holdingAxe = false;
         }
     }
 
-    public void respawn()
+    public void Respawn()
     {
-        StartCoroutine(death());
+        lives--;
+        if (!CheckLives())
+            StartCoroutine(Death());
+        else
+        {
+            GameManager.Instance.GameOver();
+        }
+            
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        if (hit.collider.CompareTag("Weapon") && weapon == null)
+        if (hit.collider.CompareTag("Weapon") && hit.gameObject.name == "Axe" && !axe)
         {
-            weapon = hit.gameObject;
-            weapon.GetComponent<Rigidbody>().isKinematic = true;
-            weapon.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
-            weapon.transform.SetParent(weaponAttachPoint);
-            Physics.IgnoreCollision(GetComponent<Collider>(), hit.collider);
+            AttachWeapon(hit.gameObject, hit.gameObject.name);
+        }
+        else if (hit.collider.CompareTag("Weapon") && hit.gameObject.name == "Sword" && !sword)
+        {
+            AttachWeapon(hit.gameObject, hit.gameObject.name);
+        }
+    }
+
+    public void AttachWeapon(GameObject weapon, string type)
+    {
+        if (type == "Axe")
+        {
+            axe = weapon;
+            axe.GetComponentInParent<Rigidbody>().isKinematic = true;
+            if (!holdingSword)
+            {
+                holdingAxe = true;
+                axe.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
+                axe.transform.SetParent(weaponAttachPoint);
+            }
+            else
+            {
+                axe.transform.SetPositionAndRotation(backHolder.position, backHolder.rotation);
+                axe.transform.SetParent(backHolder);
+            }
+            Physics.IgnoreCollision(GetComponent<Collider>(), weapon.GetComponent<Collider>());
+        }
+        else if (type == "Sword")
+        {
+            sword = weapon;
+            sword.GetComponentInParent<Rigidbody>().isKinematic = true;
+            if (!holdingAxe)
+            {
+                holdingSword = true;
+                sword.transform.SetPositionAndRotation(weaponAttachPoint.position, weaponAttachPoint.rotation);
+                sword.transform.SetParent(weaponAttachPoint);
+            }
+            else
+            {
+                sword.transform.SetPositionAndRotation(backHolder.position, backHolder.rotation);
+                sword.transform.SetParent(backHolder);
+            }
+            Physics.IgnoreCollision(GetComponent<Collider>(), weapon.GetComponent<Collider>());
         }
     }
 
@@ -200,46 +263,96 @@ public class PlayerController : MonoBehaviour
         {
             if (kicking)
             {
-                cooldown();
+                Cooldown();
                 collision.gameObject.GetComponent<Enemy>().hit(kickDamage, "Kick_Death");
             }
             else if (swinging)
             {
-                cooldown();
+                Cooldown();
                 collision.gameObject.GetComponent<Enemy>().hit(meleeDamage, "Melee_Death");
             }
         }
     }
 
-    public void hurt(int damage)
+    public void Hurt(int damage)
     {
         if (dead) return;
 
         if (health - damage <= 0)
         {
             health = 0;
-            healthBar.updateHealth(health, MAX_HEALTH);
-            respawn();
+            healthBar.UpdateHealth(health, MAX_HEALTH);
+            Respawn();
         }
         else
         {
             health -= damage;
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
         }
         Debug.Log("Health is now: " + health);
     }
 
-    public void heal(int hp)
+    public void Heal(int hp)
     {
+        FX_Healing.Play();
         if (health + hp > MAX_HEALTH) 
         {
             health = MAX_HEALTH;
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
         }
         else
         {
             health += hp;
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
         }
+    }
+
+    public void SetHealth(int hp)
+    {
+        health = hp;
+        healthBar.UpdateHealth(health, MAX_HEALTH);
+    }
+
+    public void SetLives(int livesGiven)
+    {
+        lives = livesGiven;
+    }
+
+    private bool CheckLives()
+    {
+        if (lives > 0)
+            return false;
+        else 
+            return true;
+    }
+
+    public int GetHealth()
+    {
+        return health;
+    }
+
+    public int GetLives()
+    {
+        return lives;
+    }
+
+    public Transform GetCheckpoint()
+    {
+        return lastCheckpoint;
+    }
+
+    public void SetCheckpoint(Transform checkpoint)
+    {
+        lastCheckpoint = checkpoint;
+    }
+
+    public bool HasSword()
+    {
+        return sword;
+    }
+
+    public bool HasAxe()
+    {
+        return axe;
     }
 }

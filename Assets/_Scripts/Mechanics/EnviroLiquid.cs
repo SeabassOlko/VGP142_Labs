@@ -12,7 +12,7 @@ public class EnviroLiquid : MonoBehaviour
     {
         if (other.tag == "Player" && !damaging)
         {
-            other.GetComponent<PlayerController>().hurt(damage);
+            other.GetComponent<PlayerController>().Hurt(damage);
             StartCoroutine(damageCooldown());
         }
     }

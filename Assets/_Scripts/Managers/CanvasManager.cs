@@ -3,14 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events;
 
 public class CanvasManager : MonoBehaviour
 {
+    public UnityEvent saveEvent = new UnityEvent();
+    public UnityEvent loadEvent = new UnityEvent();
+
     [Header("Button")]
     public Button quitButton;
     public Button playButton;
     public Button returnToMenu;
     public Button resumeButton;
+    public Button saveButton;
+    public Button loadButton;
+    public Button menuLoadButton;
 
     [Header("Menus")]
     public GameObject pauseMenu;
@@ -34,6 +41,26 @@ public class CanvasManager : MonoBehaviour
             returnToMenu.onClick.AddListener(delegate {
                 Time.timeScale = 1.0f;
                 loadScene("MainMenu");
+            });
+        if (saveButton)
+            saveButton.onClick.AddListener(delegate {
+                saveEvent.Invoke();
+            });
+        if (loadButton)
+            loadButton.onClick.AddListener(delegate {
+                GameManager.Instance.LoadGame();
+                Cursor.lockState = CursorLockMode.Locked;
+                PlayerController player = FindAnyObjectByType<PlayerController>();
+                player.paused = false;
+                pauseMenu.SetActive(false);
+                Time.timeScale = 1.0f;
+                loadEvent.Invoke();
+            });
+        if (menuLoadButton)
+            menuLoadButton.onClick.AddListener(delegate
+            {
+                GameManager.Instance.SetLoad();
+                loadScene("Level1");
             });
     }
 
@@ -69,6 +96,9 @@ public class CanvasManager : MonoBehaviour
 
     void Quit()
     {
+        saveEvent.RemoveAllListeners();
+        loadEvent.RemoveAllListeners();
+        GameManager.Instance.checkpoint.RemoveAllListeners();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else

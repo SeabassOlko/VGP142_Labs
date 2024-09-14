@@ -18,7 +18,7 @@ public class HealthBar : MonoBehaviour
         }
     }
 
-    public void updateHealth(float health, float maxHealth)
+    public void UpdateHealth(float health, float maxHealth)
     {
         slider.value = health / maxHealth;
     }

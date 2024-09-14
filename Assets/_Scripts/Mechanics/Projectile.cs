@@ -24,7 +24,7 @@ public class Projectile : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            other.GetComponent<PlayerController>().hurt(damage);
+            other.GetComponent<PlayerController>().Hurt(damage);
             Destroy(gameObject);
         }
     }

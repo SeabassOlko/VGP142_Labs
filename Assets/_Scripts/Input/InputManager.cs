@@ -5,7 +5,8 @@ using UnityEngine;
 public class InputManager : Singleton<InputManager>
 {
     Inputs inputAction;
-    public PlayerController controller;
+    public PlayerMovement playerMovement;
+    public PlayerController playerController;
 
     protected override void Awake()
     {
@@ -16,17 +17,17 @@ public class InputManager : Singleton<InputManager>
     private void OnEnable()
     {
         inputAction.Enable();
-        inputAction.controls.Move.performed += controller.MoveStarted;
-        inputAction.controls.Move.canceled += controller.MoveCanceled;
-        inputAction.controls.Drop.performed += controller.DropWeapon;
+        inputAction.controls.Move.performed += playerMovement.MoveStarted;
+        inputAction.controls.Move.canceled += playerMovement.MoveCanceled;
+        inputAction.controls.Drop.performed += playerController.DropWeapon;
     }
 
     private void OnDisable()
     {
         inputAction.Disable();
-        inputAction.controls.Move.performed -= controller.MoveStarted;
-        inputAction.controls.Move.canceled -= controller.MoveCanceled;
-        inputAction.controls.Drop.performed -= controller.DropWeapon;
+        inputAction.controls.Move.performed -= playerMovement.MoveStarted;
+        inputAction.controls.Move.canceled -= playerMovement.MoveCanceled;
+        inputAction.controls.Drop.performed -= playerController.DropWeapon;
     }
 
     // Start is called before the first frame update

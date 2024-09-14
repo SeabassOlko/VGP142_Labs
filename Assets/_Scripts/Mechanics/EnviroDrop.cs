@@ -51,7 +51,7 @@ public class EnviroDrop : MonoBehaviour
     {
         if (collision.gameObject.tag == "Player")
         {
-            collision.gameObject.GetComponent<PlayerController>().hurt(damage);
+            collision.gameObject.GetComponent<PlayerController>().Hurt(damage);
             StopCoroutine(fall());
             falling = false;
             rb.useGravity = false;

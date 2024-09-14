@@ -22,7 +22,7 @@ public class EnemyGhost : Enemy
 
         health = MAX_HEALTH;
         healthBar = GetComponent<HealthBar>();
-        healthBar.updateHealth(health,MAX_HEALTH);
+        healthBar.UpdateHealth(health,MAX_HEALTH);
     }
 
     // Update is called once per frame
@@ -63,6 +63,7 @@ public class EnemyGhost : Enemy
     {
         ren.enabled = true;
         isDead = true;
+        bloodSplatter.Play();
         anim.SetTrigger(deathType);
         StartCoroutine(deathDelay());
     }
@@ -91,12 +92,12 @@ public class EnemyGhost : Enemy
         if (health <= 0)
         {
             health = 0;
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
             death(damageType);
         }
         else
         {
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
         }
     }
 }

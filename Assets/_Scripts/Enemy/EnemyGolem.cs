@@ -25,7 +25,7 @@ public class EnemyGolem : Enemy
         killBox = GetComponentInChildren<EnemyKillBox>();
         healthBar = GetComponent<HealthBar>();
         movement = GetComponent<EnemyMovement>();
-        healthBar.updateHealth(health, MAX_HEALTH);
+        healthBar.UpdateHealth(health, MAX_HEALTH);
     }
 
     // Update is called once per frame
@@ -71,7 +71,7 @@ public class EnemyGolem : Enemy
         }
         else
         {
-            healthBar.updateHealth(health, MAX_HEALTH);
+            healthBar.UpdateHealth(health, MAX_HEALTH);
         }
     }
 
@@ -81,7 +81,7 @@ public class EnemyGolem : Enemy
         if (swinging && canHit)
         {
             cooldown();
-            player.gameObject.GetComponent<PlayerController>().hurt(damage);
+            player.gameObject.GetComponent<PlayerController>().Hurt(damage);
         }
     }
 
@@ -100,9 +100,10 @@ public class EnemyGolem : Enemy
     void death()
     {
         health = 0;
-        healthBar.updateHealth(health, MAX_HEALTH);
+        healthBar.UpdateHealth(health, MAX_HEALTH);
         isDead = true;
         movement.isDead = isDead;
+        bloodSplatter.Play();
         movement.stopMove();
         anim.SetTrigger("Death");
         StartCoroutine(deathDelay());
